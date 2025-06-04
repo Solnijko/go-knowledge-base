@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"os"
 	"time"
 
 	"github.com/jackc/pgx/v4/pgxpool"
@@ -24,11 +23,8 @@ func generatePassword(n int) string {
 }
 
 // Credentials must be set in environment
-func FirstUser() (User, error) {
+func FirstUser(email string, username string) (User, error) {
 	var firstUser User
-
-	email := os.Getenv("GOKB_EMAIL")
-	username := os.Getenv("GOKB_USERNAME")
 
 	if username == "" {
 		username = "gokb"
