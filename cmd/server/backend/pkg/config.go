@@ -8,11 +8,13 @@ import (
 
 type Config struct {
 	Database struct {
-		Host     string
-		Port     int
-		Name     string
-		Username string
-		Password string
+		Host         string
+		Port         int
+		Name         string
+		Username     string
+		Password     string
+		SSL          string
+		PoolMaxConns int
 	}
 
 	Root struct {
@@ -45,6 +47,18 @@ func validateConfig(cfg *Config) error {
 	if cfg.Database.Password == "" {
 		return fmt.Errorf("missing required database config (GOKB_DATABASE_PASSWORD)")
 	}
+	allowedSSL := map[string]bool{
+		"":            true,
+		"disable":     true,
+		"allow":       true,
+		"prefer":      true,
+		"require":     true,
+		"verify-ca":   true,
+		"verify-full": true,
+	}
+	if !allowedSSL[cfg.Database.SSL] {
+		return fmt.Errorf("invalid database SSL mode (GOKB_DATABASE_SSL)")
+	}
 
 	// Root user validation
 	if cfg.Root.Email == "" {
@@ -69,7 +83,13 @@ func validateConfig(cfg *Config) error {
 }
 
 func InitConfig() (*Config, error) {
+	// Read environment
 	viper.AutomaticEnv()
+	// In case if configuration file is needed
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	_ = viper.ReadInConfig()
 
 	cfg := &Config{}
 
@@ -79,6 +99,14 @@ func InitConfig() (*Config, error) {
 	cfg.Database.Name = viper.GetString("GOKB_DATABASE_NAME")
 	cfg.Database.Username = viper.GetString("GOKB_DATABASE_USERNAME")
 	cfg.Database.Password = viper.GetString("GOKB_DATABASE_PASSWORD")
+	cfg.Database.SSL = viper.GetString("GOKB_DATABASE_SSL")
+	if cfg.Database.SSL == "" {
+		cfg.Database.SSL = "disable"
+	}
+	cfg.Database.PoolMaxConns = viper.GetInt("GOKB_DATABASE_POOL_MAX_CONNS")
+	if cfg.Database.PoolMaxConns == 0 {
+		cfg.Database.PoolMaxConns = 10
+	}
 
 	// Root user configuration
 	cfg.Root.Email = viper.GetString("GOKB_ROOT_EMAIL")
