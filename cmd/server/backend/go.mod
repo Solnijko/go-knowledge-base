@@ -1,4 +1,4 @@
-module github.com/Solnijko/go-knowledge-base/backend
+module github.com/Solnijko/go-knowledge-base/cmd/server/backend
 
 go 1.24.2
 

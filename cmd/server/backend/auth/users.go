@@ -53,23 +53,6 @@ func FirstUser() (User, error) {
 	return firstUser, nil
 }
 
-func CreateUserTable(pool *pgxpool.Pool, ctx context.Context) error {
-	query := `
-	CREATE TABLE IF NOT EXISTS users (
-		id SERIAL PRIMARY KEY,
-		username TEXT NOT NULL UNIQUE,
-		email TEXT NOT NULL UNIQUE,
-		password VARCHAR(60) NOT NULL,
-		access TEXT[] NOT NULL,
-		created TIMESTAMP NOT NULL
-	);`
-	_, err := pool.Exec(ctx, query)
-	if err != nil {
-		return fmt.Errorf("unable to create table: %w", err)
-	}
-	return nil
-}
-
 func CreateUser(pool *pgxpool.Pool, ctx context.Context, user User) error {
 	query := `INSERT INTO users (username, email, password, access, created) VALUES ($1, $2, $3, $4, $5);`
 	_, err := pool.Exec(ctx, query, user.Username, user.Email, user.Password, user.Access, user.Created)
