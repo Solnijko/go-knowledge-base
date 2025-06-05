@@ -1,4 +1,4 @@
-package auth
+package pkg
 
 import (
 	"context"
@@ -8,10 +8,10 @@ import (
 	"github.com/jackc/pgx/v4/pgxpool"
 )
 
-func CreateDBPool(host string, port int, name string, username string, password string, ssl string, pool_max_conns int, logger *slog.Logger) (*pgxpool.Pool, error) {
+func CreateDBPool(dbconfig DBConfig, logger *slog.Logger) (*pgxpool.Pool, error) {
 	connStr := fmt.Sprintf(
 		"user=%s password=%s host=%s port=%d dbname=%s sslmode=%s pool_max_conns=%d",
-		username, password, host, port, name, ssl, pool_max_conns,
+		dbconfig.Username, dbconfig.Password, dbconfig.Host, dbconfig.Port, dbconfig.Name, dbconfig.SSL, dbconfig.PoolMaxConns,
 	)
 
 	config, err := pgxpool.ParseConfig(connStr)
