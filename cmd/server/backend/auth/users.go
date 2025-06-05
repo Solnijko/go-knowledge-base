@@ -2,8 +2,7 @@ package auth
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"log/slog"
 	"math/rand"
 	"time"
 
@@ -12,31 +11,46 @@ import (
 )
 
 // Random password generation
-const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*"
-
 func generatePassword(n int) string {
+	const letters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890!@#$%^&*"
 	b := make([]byte, n)
 	for i := range b {
-		b[i] = letterBytes[rand.Intn(len(letterBytes))]
+		b[i] = letters[rand.Intn(len(letters))]
 	}
 	return string(b)
 }
 
+// User creation function
+func CreateUser(pool *pgxpool.Pool, ctx context.Context, user User, logger *slog.Logger) error {
+	// Random password is generated if it was not set
+	if user.Password == "" {
+		logger.Info("generating random temporary password since it was not set")
+		user.Password = generatePassword(12)
+		// TODO: Implement password sending after SMTP implementation
+		// Example: SendWelcomeEmail(email, password)
+	}
+
+	query := `INSERT INTO users (username, email, password, access, created) VALUES ($1, $2, $3, $4, $5);`
+	commandTag, err := pool.Exec(ctx, query, user.Username, user.Email, user.Password, user.Access, user.Created)
+	logger.Debug("executing user creation query", "command_tag", commandTag)
+
+	if err != nil {
+		logger.Error("unable to create user", "err", err)
+		return err
+	}
+	logger.Info("created user", "username", user.Username, "email", user.Email, "access", user.Access)
+	return nil
+}
+
 // Credentials must be set in environment
-func FirstUser(email string, username string) (User, error) {
+func FirstUser(email string, username string, logger *slog.Logger) (User, error) {
 	var firstUser User
 
-	if username == "" {
-		username = "gokb"
-	}
-
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(generatePassword(12)), bcrypt.DefaultCost)
+	userPassword := generatePassword(12)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(userPassword), bcrypt.DefaultCost)
 	if err != nil {
-		return User{}, fmt.Errorf("password generation error %v", err)
-	}
-
-	if email == "" {
-		return User{}, fmt.Errorf("email was not set")
+		logger.Error("password generation error", "err", err)
+		return User{}, err
 	}
 
 	firstUser.Username = username
@@ -45,15 +59,8 @@ func FirstUser(email string, username string) (User, error) {
 	firstUser.Access = []string{"admin"}
 	firstUser.Created = time.Now()
 
-	log.Printf("Generated first user with email: %s, username: %s", email, username)
+	// TODO: Implement password sending after SMTP implementation
+	// Example: SendWelcomeEmail(email, password)
+	logger.Info("created first user", "email", email, "username", username, "access", firstUser.Access)
 	return firstUser, nil
-}
-
-func CreateUser(pool *pgxpool.Pool, ctx context.Context, user User) error {
-	query := `INSERT INTO users (username, email, password, access, created) VALUES ($1, $2, $3, $4, $5);`
-	_, err := pool.Exec(ctx, query, user.Username, user.Email, user.Password, user.Access, user.Created)
-	if err != nil {
-		return fmt.Errorf("unable to create user: %w", err)
-	}
-	return nil
 }

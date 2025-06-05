@@ -15,14 +15,17 @@ func main() {
 		log.Fatal(err)
 	}
 
-	auth.FirstUser(cfg.Root.Email, cfg.Root.Username)
+	logger := pkg.SetupLogger(cfg)
+	logger.Info("logger initialized", "level", cfg.Logging.Level, "format", cfg.Logging.Format)
+
+	auth.FirstUser(cfg.Root.Email, cfg.Root.Username, logger)
 
 	mux := http.NewServeMux()
 	auth.AuthRoutes(mux)
 
-	log.Println("Server is started on http://localhost:8080")
+	logger.Info("Server is started on http://localhost:8080")
 	err = http.ListenAndServe(":8080", mux)
 	if err != nil {
-		log.Fatalf("Server start error: %v", err)
+		logger.Error("Server start error", "err", err)
 	}
 }

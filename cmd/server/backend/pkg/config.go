@@ -28,6 +28,11 @@ type Config struct {
 		Secure   bool
 		Password string
 	}
+
+	Logging struct {
+		Level  string
+		Format string
+	}
 }
 
 func validateConfig(cfg *Config) error {
@@ -79,6 +84,19 @@ func validateConfig(cfg *Config) error {
 		return fmt.Errorf("missing required cache server config (GOKB_CACHE_PASSWORD)")
 	}
 
+	loggingLevels := map[string]bool{
+		"debug": true,
+		"info":  true,
+		"warn":  true,
+		"error": true,
+	}
+	if !loggingLevels[cfg.Logging.Level] {
+		return fmt.Errorf("invalid logging level (GOKB_LOGGING_LEVEL)")
+	}
+	if cfg.Logging.Format != "text" && cfg.Logging.Format != "json" {
+		return fmt.Errorf("invalid logging format (GOKB_LOGGING_FORMAT)")
+	}
+
 	return nil
 }
 
@@ -111,6 +129,9 @@ func InitConfig() (*Config, error) {
 	// Root user configuration
 	cfg.Root.Email = viper.GetString("GOKB_ROOT_EMAIL")
 	cfg.Root.Username = viper.GetString("GOKB_ROOT_USERNAME")
+	if cfg.Root.Username == "" {
+		cfg.Root.Username = "gokb"
+	}
 
 	// Cache server configuration
 	cfg.Cache.URL = viper.GetString("GOKB_CACHE_URL")
@@ -118,6 +139,16 @@ func InitConfig() (*Config, error) {
 	cfg.Cache.Secure = viper.GetBool("GOKB_CACHE_SECURE")
 	if cfg.Cache.Secure {
 		cfg.Cache.Password = viper.GetString("GOKB_CACHE_PASSWORD")
+	}
+
+	// Logging configuration
+	cfg.Logging.Level = viper.GetString("GOKB_LOGGING_LEVEL")
+	if cfg.Logging.Level == "" {
+		cfg.Logging.Level = "info"
+	}
+	cfg.Logging.Format = viper.GetString("GOKB_LOGGING_FORMAT")
+	if cfg.Logging.Format == "" {
+		cfg.Logging.Format = "text"
 	}
 
 	// Configuration validation
